@@ -11,8 +11,10 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 # ================= 配置区域 =================
-# Excel 文件路径
-FOLDER_PATH = r"D:\Documents\Projects\Student-NutriPlan-Toolkit\data\2_食材入库管理\输出结果"
+# 获取当前脚本所在目录
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+# 自动定位到 manager_inventory.py 生成结果的目录
+FOLDER_PATH = os.path.join(CURRENT_DIR, 'data', '2_食材入库管理', '输出结果')
 
 # 目标网址
 TARGET_URL = "https://yyjh.xszz.edu.cn/yygsjh/dlsp/cgqdwhSchool"
@@ -60,30 +62,32 @@ def select_dropdown_option(driver, wait, placeholder_text, target_value):
         time.sleep(1)  # 等待菜单弹出动画
 
         # 2. 关键修复：查找所有包含目标文字的选项，但只点“可见”的那一个
-        # Element UI 的选项通常是 li 标签
         option_xpath = f"//li[contains(., '{target_value}')]"
         options = driver.find_elements(By.XPATH, option_xpath)
 
         clicked = False
         for opt in options:
-            # is_displayed() 会检查元素是否在屏幕上可见
             if opt.is_displayed():
                 click_element_forcefully(driver, opt)
                 clicked = True
-                break  # 点到一个就行了，退出循环
+                break
 
         if not clicked:
             print(f"      ⚠️ 警告：找到了选项但它们似乎都被隐藏了，尝试强制点击最后一个...")
             if options:
                 click_element_forcefully(driver, options[-1])
 
-        time.sleep(0.5)  # 等待收起
+        time.sleep(0.5)
     except Exception as e:
         print(f"      ❌ 选择下拉框失败: {e}")
 
 
 def start_automation():
-    print("🚀 正在启动【下拉框修正模式】...")
+    print("\n" + "=" * 50)
+    print("🤖 平台自动录入系统 (Selenium)")
+    print("说明：自动读取【输出结果】中的Excel文件并上传至网页。")
+    print("=" * 50)
+    print("正在尝试连接已打开的浏览器...")
 
     try:
         chrome_options = Options()
@@ -92,22 +96,36 @@ def start_automation():
         driver = webdriver.Chrome(service=service, options=chrome_options)
         print("✅ 成功连接到浏览器！")
     except Exception as e:
-        print("❌ 连接失败！请检查专用快捷方式是否正确开启。")
+        print("❌ 连接失败！请检查以下两点：")
+        print("1. 是否已通过【专用快捷方式】打开了Chrome浏览器？")
+        print("2. 是否已在浏览器中登录并停留在【食材入库维护】页面？")
+        input("按回车键返回主菜单...")
         return
 
     if not os.path.exists(FOLDER_PATH):
         print(f"❌ 错误：文件夹路径不存在 -> {FOLDER_PATH}")
+        print("💡 提示：请先执行功能 [2] 生成入库表格。")
+        input("按回车键返回主菜单...")
         return
 
     file_list = [f for f in os.listdir(FOLDER_PATH) if f.endswith('.xls') or f.endswith('.xlsx')]
     file_list.sort()
 
+    if not file_list:
+        print("❌ 文件夹里没有找到 Excel 文件！")
+        input("按回车键返回主菜单...")
+        return
+
     print("-" * 50)
-    print(f"📂 路径: {FOLDER_PATH}")
+    print(f"📂 读取路径: {FOLDER_PATH}")
     print(f"📄 待处理文件: {len(file_list)} 个")
     print("👉 请确保浏览器页面停留在【食材入库维护】。")
     print("-" * 50)
-    input("👉 准备好后，按【回车键】开始自动录入 >>> ")
+
+    confirm = input("👉 准备好后，按【y】开始，其他键取消: ").strip().lower()
+    if confirm != 'y':
+        print("🚫 操作已取消。")
+        return
 
     for index, file_name in enumerate(file_list, 1):
         full_file_path = os.path.join(FOLDER_PATH, file_name)
@@ -120,16 +138,15 @@ def start_automation():
         try:
             wait = WebDriverWait(driver, 15)
 
-            # === 1. 顶部筛选 (修复逻辑) ===
+            # === 1. 顶部筛选 ===
             print("   1. 正在切换学期...")
             select_dropdown_option(driver, wait, "请选择学年", academic_year)
             select_dropdown_option(driver, wait, "请选择学期", semester)
 
-            # 点击查询
             print("      点击查询...")
             query_btn = driver.find_element(By.XPATH, "//button[contains(., '查询')]")
             click_element_forcefully(driver, query_btn)
-            time.sleep(2)  # 必须等待查询结果刷新
+            time.sleep(2)
 
             # === 2. 点击“采购食材录入” ===
             print("   2. 打开录入弹窗...")
@@ -160,7 +177,7 @@ def start_automation():
                 pass
             time.sleep(0.5)
 
-            # 填写日期 (保持之前的暴力修复)
+            # 填写日期
             js_force_date = f"""
                 var inputs = document.querySelectorAll("input");
                 inputs.forEach(function(input) {{
@@ -235,7 +252,7 @@ def start_automation():
     print("\n" + "=" * 50)
     print("🎉 所有文件处理完毕！")
     print("=" * 50)
-    input("按回车键退出...")
+    input("按回车键返回主菜单...")
 
 
 if __name__ == "__main__":

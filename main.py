@@ -6,6 +6,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from manager_students import run_student_manager
 from manager_inventory import run_inventory_manager
+# 新增导入
+from auto_nutrition import start_automation
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -18,6 +20,7 @@ def print_main_menu():
     print("\n请选择要执行的功能：\n")
     print("  [1] 🎓 学生名单核算 (人数核对、跨班调剂)")
     print("  [2] 🥦 食材入库生成 (自动拆分每日入库单)")
+    print("  [3] 🤖 平台自动录入 (Selenium自动化上传)")
     print("  [0] ❌ 退出系统")
     print("-" * 60)
 
@@ -30,6 +33,9 @@ def main():
             run_student_manager()
         elif choice == '2':
             run_inventory_manager()
+        elif choice == '3':
+            # 调用自动化录入功能
+            start_automation()
         elif choice == '0':
             print("\n👋 感谢使用，再见！")
             sys.exit()
